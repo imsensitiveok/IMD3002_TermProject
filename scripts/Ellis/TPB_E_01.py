@@ -318,6 +318,46 @@ def roundBlock():
     # Removing block namespace
     cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
 
+# -------------------------------------------------------------------------------------
+    
+# Creating a thin jumper block based on user inputed slider values
+def thinJumperBlock():
+
+    # Setting up to create block
+    thinJumperHeight = 1
+    block = setUpBlockCreation(customWidth = True, customHeight = True, customDepth = False, widthVar = 'thinJumperWidth', heightVar = 'thinJumperHeight', colourVar = 'thinJumperColour', setDepth = 1)
+
+    # Adjusting width and depth to account for thin jumper block
+    block.sizeX *= 2
+    block.sizeZ *= 1
+
+    # Creating block base and moving it to sit on the grid
+    cmds.polyCube(h = block.sizeY, w = block.sizeX, d = block.sizeZ, sx = block.width, sy = (block.height - 1), sz = block.depth)
+    cmds.move((block.sizeY / 2.0), moveY = True, a = True)
+
+    # Creating block bumps
+    for i in range(block.width):
+
+        for j in range(block.depth):
+            topBump(block, i, j, DEFAULT_BLOCK_WIDTH * 2, DEFAULT_BLOCK_DEPTH)
+
+    # Creating block material
+    cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
+    cmds.setAttr(block.namespace + ':blockMat.color', block.colour[0], block.colour[1], block.colour[2], typ = 'double3')
+
+    # Combining all block parts into one
+    cmds.polyUnite((block.namespace + ':*'), n = block.namespace)
+
+    # Deleting construction history
+    cmds.delete(ch = True)
+
+    # Assigning material to block
+    cmds.hyperShade(assign = (block.namespace + ':blockMat'))
+
+    # Removing block namespace
+    cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
+
+
 # Main Code ---------------------------------------------------------------------------
 
 # Creating window
@@ -449,6 +489,30 @@ cmds.button(l = 'Create Round Block', command = ('roundBlock()'))
 cmds.setParent("..")
 cmds.setParent("..")
 cmds.setParent("..")
+
+# Layout: Thin Jumper Block
+cmds.setParent()
+cmds.frameLayout(collapsable = True, label = 'Thin Jumper Block', width = 400)
+
+cmds.setParent()
+cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
+
+# Size slider
+cmds.intSliderGrp('thinJumperHeight', l = 'Height', f = True, min = 1, max = 16, value = 1)
+cmds.intSliderGrp('thinJumperWidth', l = 'Width (Bumps)', f = True, min = 1, max = 16, value = 2)
+#cmds.intSliderGrp('thinJumperDepth', l = 'Depth (Bumps)', f = True, min = 1, max = 16, value = 1)
+
+# Colour slider
+cmds.colorSliderGrp('thinJumperColour', l = 'Colour', hsv = (0, 0, 1))
+
+cmds.setParent()
+
+# Create button
+cmds.button(l = 'Create Thin Jumper Block', command = ('thinJumperBlock()'))
+
+cmds.setParent("..")
+cmds.setParent("..")
+#cmds.setParent("..")
     
 # Showing window
 cmds.showWindow(window)
