@@ -177,52 +177,44 @@ def standardBlock():
 
     # Assigning material to block
     cmds.hyperShade(assign = (block.namespace + ':blockMat'))
+    cmds.setAttr(block.namespace + ':blockMat.color', block.colour[0], block.colour[1], block.colour[2], typ='double3')
+    
 
     # Removing block namespace
     cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
 
 # -------------------------------------------------------------------------------------
+
+# Creating a shelf block based on user inputed slider values
+def shelfBlock():
     
-# Creating a tile block based on user inputed slider values
-def tileBlock():
+    block = setUpBlockCreation(customWidth=False, customHeight=False, customDepth=False, colourVar='shelfColour', setWidth=4, setHeight=2, setDepth=1)
 
-    block = setUpBlockCreation(customWidth = True, customHeight = False, customDepth = True, widthVar = 'tileWidth', depthVar = 'tileDepth', colourVar = 'tileColour', setHeight = 1)
-
-    # Creating block material
-    cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
-    cmds.setAttr(block.namespace + ':blockMat.color', block.colour[0], block.colour[1], block.colour[2], typ = 'double3')
-
-    # Creating block and moving it to sit on the grid
-    cmds.polyCube(h = block.sizeY, w = block.sizeX, d = block.sizeZ, sx = block.width, sy = (block.height - 1), sz = block.depth)
-    cmds.move((block.sizeY / 2.0), moveY = True, a = True)
-
-    # Assigning material to block
-    cmds.hyperShade(assign = (block.namespace + ':blockMat'))
-
-    # Removing block namespace
-    cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
-
-# -------------------------------------------------------------------------------------
+    # Create the vertical part of the shelf (back piece)
+    vertical_height = block.sizeY * 3  # Thrice the block height for the back
+    vertical = cmds.polyCube(h=vertical_height, w=block.sizeX * 0.6, d=block.sizeZ)
+    cmds.move(vertical_height / 2, y=True)
+    cmds.scale(1, 1, 0.6, vertical)
     
-# Creating a jumper block based on user inputed slider values
-def jumperBlock():
 
-    # Setting up to create block
-    block = setUpBlockCreation(customWidth = True, customHeight = True, customDepth = True, widthVar = 'jumperWidth', heightVar = 'jumperHeight', depthVar = 'jumperDepth', colourVar = 'jumperColour')
+    # Create the horizontal part of the shelf (seat piece)
+    horizontal_depth = block.sizeZ * 1.5  
+    horizontal = cmds.polyCube(h=block.sizeY, w=block.sizeX * 0.6, d=horizontal_depth)
+    cmds.move(block.sizeY + 0.3, y=True)  # Move up by its own height to be placed on top of the grid
+    cmds.move(block.sizeZ, z=True)  # Move forward to not intersect with the back piece
+    cmds.scale(1, 0.6, 1, horizontal)
 
-    # Adjusting width and depth to account for jumper block
-    block.sizeX *= 2
-    block.sizeZ *= 2
-
-    # Creating block base and moving it to sit on the grid
-    cmds.polyCube(h = block.sizeY, w = block.sizeX, d = block.sizeZ, sx = block.width, sy = (block.height - 1), sz = block.depth)
-    cmds.move((block.sizeY / 2.0), moveY = True, a = True)
-
-    # Creating block bumps
-    for i in range(block.width):
-
-        for j in range(block.depth):
-            topBump(block, i, j, DEFAULT_BLOCK_WIDTH * 2, DEFAULT_BLOCK_DEPTH * 2)
+    # Create two bumps on the horizontal part of the shelf
+    for i in range(2):
+        bump = cmds.polyCylinder(r=BUMP_RADIUS, h=BUMP_HEIGHT)
+        cmds.rotate(180, x=True)
+        # Calculate the X position for the bumps, they should be equidistant from the center of the shelf
+        bump_x_pos = (-block.sizeX * 0.6 / 4) + (block.sizeX * 0.6 / 2 * i)
+        cmds.move(bump_x_pos, x=True)
+        # Position the bump so that its bottom sits on the top surface of the horizontal shelf
+        cmds.move(block.sizeY + 0.59, y=True)
+        #cmds.move(block.sizeY, y=True)   
+        cmds.move(block.sizeZ + (horizontal_depth / 2) - (block.sizeZ / 2), z=True)
 
     # Creating block material
     cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
@@ -241,66 +233,29 @@ def jumperBlock():
     cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
 
 # -------------------------------------------------------------------------------------
+def sixBumpBlock():
+    # Retrieve slider values for custom dimensions
+    block = setUpBlockCreation(customWidth=False, customHeight=False, customDepth=False, colourVar='sixBumpColour', setWidth=2, setHeight=3, setDepth=1)
 
-# Creating a 4 sided block based on user inputed slider values
-def fourSideBlock():
+    # Create the vertical part of the block
+    vertical = cmds.polyCube(w=block.sizeX, d=block.sizeZ, h=block.sizeY * 2)
+    cmds.move(block.sizeY, y=True)  # Positioning at the origin on the grid
+    cmds.rotate(0, '90deg', 0, vertical)  # Rotating 90 degrees on Y-axis
 
-    # Setting up to create block
-    block = setUpBlockCreation(customWidth = True, customHeight = True, customDepth = True, widthVar = 'fourSideWidth', heightVar = 'fourSideHeight', depthVar = 'fourSideDepth', colourVar = 'fourSideColour')
+    # Add the top bumps
+    for i in range(2):
+        topBump(block, 0, i, DEFAULT_BLOCK_WIDTH, DEFAULT_BLOCK_DEPTH)
+        cmds.move(0.4, x=True, relative=True)
+        cmds.move(0.95, y=True, relative=True)
+        cmds.move(-0.41, z=True, relative=True)
 
-    # Adjusting height
-    block.sizeY = (block.height * SIDED_BUMP_BLOCK_HEIGHT) + (SIDED_BUMP_BLOCK_HEIGHT / 4)
-
-    # Creating base block
-    blockBase(block)
-
-    # Creating side bumps
-    for i in range(block.height):
-
-        # X axis
-        for j in range(block.depth):
-            xBump(block, i, j, 1)
-            xBump(block, i, j, -1)
-
-        # Z axis
-        for j in range(block.width):
-            zBump(block, i, j, 1)
-            zBump(block, i, j, -1)
-
-    # Combining all block parts into one
-    cmds.polyUnite((block.namespace + ':*'), n = block.namespace)
-
-    # Deleting construction history
-    cmds.delete(ch = True)
-
-    # Assigning material to block
-    cmds.hyperShade(assign = (block.namespace + ':blockMat'))
-
-    # Removing block namespace
-    cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
-
-# -------------------------------------------------------------------------------------
-
-# Creating a round block based on user inputed slider values
-def roundBlock():
-
-    # Setting up to create block
-    block = setUpBlockCreation(customWidth = False, customHeight = False, customDepth = False, colourVar = 'roundColour', setWidth = 1, setHeight = 1, setDepth = 1)
-
-    # Splitting up the height 
-    skinnySizeY = block.sizeY * 0.70
-    wideSizeY = block.sizeY * 0.30
-    
-    # Creating the skinny part of the block base and moving it to sit on the grid
-    cmds.polyCylinder(r = (block.sizeX / 2.5), h = skinnySizeY)
-    cmds.move((skinnySizeY / 2), moveY = True, a = True)
-
-    # Creating the wide part of the block base and moving it to sit on the skinny part
-    cmds.polyCylinder(r = (block.sizeX / 2), h = wideSizeY)
-    cmds.move((skinnySizeY + (wideSizeY / 2)), moveY = True, a = True)
-
-    # Creating bump
-    topBump(block, 0, 0, DEFAULT_BLOCK_WIDTH, DEFAULT_BLOCK_DEPTH)
+    # Create the front bumps
+    for i in range(2):
+        for j in range(2):
+            xBump(block, j, i, 1)  # Adding 4 bumps on the front
+            cmds.move(-0.4, x=True, relative=True)
+            cmds.move(0.8, y=True, relative=True)
+            cmds.move(-0.41, z=True, relative=True)
 
     # Creating block material
     cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
@@ -317,29 +272,35 @@ def roundBlock():
 
     # Removing block namespace
     cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
-
-# -------------------------------------------------------------------------------------
     
-# Creating a thin jumper block based on user inputed slider values
-def thinJumperBlock():
+# -------------------------------------------------------------------------------------
+def fourBumpBlock():
+    block = setUpBlockCreation(customWidth=False, customHeight=False, customDepth=False, colourVar='fourBumpColour', setWidth=2, setHeight=1, setDepth=1.5)
 
-    # Setting up to create block
-    thinJumperHeight = 1
-    block = setUpBlockCreation(customWidth = True, customHeight = True, customDepth = False, widthVar = 'thinJumperWidth', heightVar = 'thinJumperHeight', colourVar = 'thinJumperColour', setDepth = 1)
+    # Create the main cube for the block
+    mainBlock = cmds.polyCube(w=block.sizeX / 1.5, h=block.sizeY * 2, d=block.sizeZ * 1.5)
+                             
+    cmds.move(block.sizeY * 2, y=True)  # Move up to sit on the grid
+    cmds.rotate(0, 0, '90deg', mainBlock)  # Rotating 90 degrees on X & Z-axis
 
-    # Adjusting width and depth to account for thin jumper block
-    block.sizeX *= 2
-    block.sizeZ *= 1
+    # Create and position the top bumps correctly
+    for i in range(2):
+        topBump(block, 0, i,  DEFAULT_BLOCK_WIDTH, DEFAULT_BLOCK_DEPTH)
+        newYPosition = (block.sizeY * 3.6) + (BUMP_HEIGHT / 2)
+        cmds.move(newYPosition, y=True, absolute=True)
+        cmds.move(-0.2, z=True, relative=True)
+        cmds.move(0.4, x=True, relative=True)
+        
 
-    # Creating block base and moving it to sit on the grid
-    cmds.polyCube(h = block.sizeY, w = block.sizeX, d = block.sizeZ, sx = block.width, sy = (block.height - 1), sz = block.depth)
-    cmds.move((block.sizeY / 2.0), moveY = True, a = True)
-
-    # Creating block bumps
-    for i in range(block.width):
-
-        for j in range(block.depth):
-            topBump(block, i, j, DEFAULT_BLOCK_WIDTH * 2, DEFAULT_BLOCK_DEPTH)
+    # Create and position the front bumps correctly
+    for i in range(2):
+        xBump(block, 0, i, 1)
+        cmds.move(block.sizeZ / 2 + BUMP_HEIGHT / 2, z=True, relative=True, objectSpace=True)
+        # Adjust for correct placement in front
+        cmds.move(-0.48, x=True, relative=True)
+        cmds.move(1.45, y=True, relative=True)
+        cmds.move(-0.2, z=True, relative=True)
+        
 
     # Creating block material
     cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
@@ -376,141 +337,65 @@ cmds.menuItem(label = 'Delete Selected', command = ('cmds.delete()'))
 
 # Creating window items
 
-# Layout: Standard Block
+# Layout: Shelf Block
 cmds.setParent()
-cmds.frameLayout(collapsable = True, label = 'Standard Block', width = 400)
+cmds.frameLayout(collapsable=True, label='Shelf Block', width=400)
 
 cmds.setParent()
-cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
-
-# Size slider
-cmds.intSliderGrp('standardHeight', l = 'Height', f = True, min = 1, max = 16, value = 3)
-cmds.intSliderGrp('standardWidth', l = 'Width (Bumps)', f = True, min = 1, max = 16, value = 2)
-cmds.intSliderGrp('standardDepth', l = 'Depth (Bumps)', f = True, min = 1, max = 16, value = 8)
+cmds.columnLayout(columnAttach=('right', 5), rowSpacing=10, columnWidth=375)
 
 # Colour slider
-cmds.colorSliderGrp('standardColour', l = 'Colour', hsv = (0, 0, 1))
+cmds.colorSliderGrp('shelfColour', l = 'Colour', hsv = (0, 0, 1))
 
 cmds.setParent()
 
 # Create button
-cmds.button(l = 'Create Standard Block', command = ('standardBlock()'))
+cmds.button(l='Create Shelf Block', command=('shelfBlock()'))
 
 cmds.setParent("..")
 cmds.setParent("..")
 cmds.setParent("..")
 
-# Layout: Tile Block
-cmds.setParent()
-cmds.frameLayout(collapsable = True, label = 'Tile Block', width = 400)
+# Layout: Four Bump Block
+cmds.setParent()  # Go back to the main column layout if needed
+cmds.frameLayout(collapsable=True, label='Four Bump Block', width=400)
 
-cmds.setParent()
-cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
+cmds.setParent()  # Adjust if necessary
+cmds.columnLayout(columnAttach=('right', 5), rowSpacing=10, columnWidth=375)
 
-# Size slider
-cmds.intSliderGrp('tileWidth', l = 'Width', f = True, min = 1, max = 16, value = 2)
-cmds.intSliderGrp('tileDepth', l = 'Depth', f = True, min = 1, max = 16, value = 8)
-
-# Colour slider
-cmds.colorSliderGrp('tileColour', l = 'Colour', hsv = (0, 0, 1))
+# Colour slider for Four Bump Block
+cmds.colorSliderGrp('fourBumpColour', l = 'Colour', hsv = (0, 0, 1))
 
 cmds.setParent()
 
-# Create button
-cmds.button(l = 'Create Tile Block', command = ('tileBlock()'))
+# Create button for Four Bump Block
+cmds.button(label='Create Four Bump Block', command=('fourBumpBlock()'))
 
-cmds.setParent("..")
-cmds.setParent("..")
-cmds.setParent("..")
-
-# Layout: Jumper Block
+#Layout: Six Bump Block
 cmds.setParent()
-cmds.frameLayout(collapsable = True, label = 'Jumper Block', width = 400)
+cmds.frameLayout(collapsable=True, label='Six Bump Block', width=400)
 
 cmds.setParent()
-cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
+cmds.columnLayout(columnAttach=('right', 5), rowSpacing=10, columnWidth=375)
 
-# Size slider
-cmds.intSliderGrp('jumperHeight', l = 'Height', f = True, min = 1, max = 16, value = 1)
-cmds.intSliderGrp('jumperWidth', l = 'Width (Bumps)', f = True, min = 1, max = 16, value = 2)
-cmds.intSliderGrp('jumperDepth', l = 'Depth (Bumps)', f = True, min = 1, max = 16, value = 1)
+# Size sliders for sixBumpBlock
+#cmds.intSliderGrp('sixBumpWidth', label='Width', field=True, minValue=1, maxValue=10, value=2)
+#cmds.intSliderGrp('sixBumpHeight', label='Height', field=True, minValue=1, maxValue=10, value=3)  # Adjust for extra height
+#cmds.intSliderGrp('sixBumpDepth', label='Depth', field=True, minValue=1, maxValue=10, value=1)
 
-# Colour slider
-cmds.colorSliderGrp('jumperColour', l = 'Colour', hsv = (0, 0, 1))
+# Colour slider for sixBumpBlock
+cmds.colorSliderGrp('sixBumpColour', l = 'Colour', hsv = (0, 0, 1))
 
 cmds.setParent()
 
-# Create button
-cmds.button(l = 'Create Jumper Block', command = ('jumperBlock()'))
+# Create button for sixBumpBlock
+cmds.button(label='Create Six Bump Block', command=('sixBumpBlock()'))
 
-cmds.setParent("..")
-cmds.setParent("..")
-cmds.setParent("..")
+cmds.setParent('..')
+cmds.setParent('..')
+cmds.setParent('..')
 
-# Layout: 4 Sided Block
-cmds.setParent()
-cmds.frameLayout(collapsable = True, label = '4 Sided Block', width = 400)
 
-cmds.setParent()
-cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
-
-# Size slider
-cmds.intSliderGrp('fourSideHeight', l = 'Height (Bumps)', f = True, min = 1, max = 16, value = 1)
-cmds.intSliderGrp('fourSideWidth', l = 'Width (Bumps)', f = True, min = 1, max = 16, value = 1)
-cmds.intSliderGrp('fourSideDepth', l = 'Depth (Bumps)', f = True, min = 1, max = 16, value = 1)
-
-# Colour slider
-cmds.colorSliderGrp('fourSideColour', l = 'Colour', hsv = (0, 0, 1))
-
-cmds.setParent()
-
-# Create button
-cmds.button(l = 'Create 4 Sided Block', command = ('fourSideBlock()'))
-
-cmds.setParent("..")
-cmds.setParent("..")
-cmds.setParent("..")
-
-# Layout: Round Block
-cmds.setParent()
-cmds.frameLayout(collapsable = True, label = 'Round Block', width = 400)
-
-cmds.setParent()
-cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
-
-# Colour slider
-cmds.colorSliderGrp('roundColour', l = 'Colour', hsv = (0, 0, 1))
-
-cmds.setParent()
-
-# Create button
-cmds.button(l = 'Create Round Block', command = ('roundBlock()'))
-
-cmds.setParent("..")
-cmds.setParent("..")
-cmds.setParent("..")
-
-# Layout: Thin Jumper Block
-cmds.setParent()
-cmds.frameLayout(collapsable = True, label = 'Thin Jumper Block', width = 400)
-
-cmds.setParent()
-cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
-
-# Size slider
-cmds.intSliderGrp('thinJumperHeight', l = 'Height', f = True, min = 1, max = 16, value = 1)
-cmds.intSliderGrp('thinJumperWidth', l = 'Width (Bumps)', f = True, min = 1, max = 16, value = 2)
-
-# Colour slider
-cmds.colorSliderGrp('thinJumperColour', l = 'Colour', hsv = (0, 0, 1))
-
-cmds.setParent()
-
-# Create button
-cmds.button(l = 'Create Thin Jumper Block', command = ('thinJumperBlock()'))
-
-cmds.setParent("..")
-cmds.setParent("..")
     
 # Showing window
 cmds.showWindow(window)

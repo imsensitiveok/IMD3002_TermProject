@@ -357,6 +357,39 @@ def thinJumperBlock():
     # Removing block namespace
     cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
 
+# -------------------------------------------------------------------------------------
+
+# Creating a standard block based on user inputed slider values
+def cornerBlock():
+
+    block = setUpBlockCreation(customWidth = False, customHeight = True, customDepth = False, heightVar = 'cornerHeight', colourVar = 'cornerColour', setWidth = 2, setDepth = 1)
+
+    cmds.polyCube(h = block.sizeY, w = DEFAULT_BLOCK_WIDTH, d = block.sizeX, sx = 1, sy = 1, sz = 1)
+    cmds.move((block.sizeX/2 - (DEFAULT_BLOCK_WIDTH/2)), moveX = True, a = True)
+    cmds.move((block.sizeX/2 - (DEFAULT_BLOCK_WIDTH/2)), moveZ = True, a = True)
+    cmds.move((block.sizeY/2), moveY = True, a = True)
+
+    #create bumps
+    for i in range(block.width):
+        print("hi")
+        cmds.polyCylinder(r = BUMP_RADIUS, h = BUMP_HEIGHT)
+
+        cmds.move((block.sizeY + (BUMP_HEIGHT / 2)), moveY = True, a = True)
+        cmds.move((block.sizeX/2 - (DEFAULT_BLOCK_WIDTH/2)), moveX = True, a = True)
+        cmds.move(bumpSpacing(i, DEFAULT_BLOCK_WIDTH, block.sizeX) + (DEFAULT_BLOCK_WIDTH/2), moveZ = True, a = True)
+        
+    
+    # Creating block
+    blockBase(block)
+
+    # Deleting construction history
+    cmds.delete(ch = True)
+
+    # Assigning material to block
+    cmds.hyperShade(assign = (block.namespace + ':blockMat'))
+
+    # Removing block namespace
+    cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
 
 # Main Code ---------------------------------------------------------------------------
 
@@ -510,6 +543,26 @@ cmds.setParent()
 cmds.button(l = 'Create Thin Jumper Block', command = ('thinJumperBlock()'))
 
 cmds.setParent("..")
+cmds.setParent("..")
+
+# Layout: Corner Block
+cmds.setParent()
+cmds.frameLayout(collapsable = True, label = 'Corner Block', width = 400)
+
+cmds.setParent()
+cmds.columnLayout(columnAttach = ('right', 5), rowSpacing = 10, columnWidth = 375)
+
+# Size slider
+cmds.intSliderGrp('cornerHeight', l = 'Height', f = True, min = 1, max = 16, value = 1)
+
+# Colour slider
+cmds.colorSliderGrp('cornerColour', l = 'Colour', hsv = (0, 0, 1))
+
+cmds.setParent()
+
+# Create button
+cmds.button(l = 'Create Corner Block', command = ('cornerBlock()'))
+
 cmds.setParent("..")
     
 # Showing window
