@@ -143,24 +143,26 @@ def xBump(block, i, j, direction):
 # -------------------------------------------------------------------------------------
 
 # Creating base of standard block
-def blockBase(block):
+def blockBase(block, bumps):
 
     # Creating block base and moving it to sit on the grid
     cmds.polyCube(h = block.sizeY, w = block.sizeX, d = block.sizeZ, sx = block.width, sy = (block.height - 1), sz = block.depth)
     cmds.move((block.sizeY / 2.0), moveY = True, a = True)
 
-    # Creating block bumps
-    for i in range(block.width):
+    if (bumps==True):
+        # Creating block bumps
+        for i in range(block.width):
 
-        for j in range(block.depth):
-            topBump(block, i, j, DEFAULT_BLOCK_WIDTH, DEFAULT_BLOCK_DEPTH)
+            for j in range(block.depth):
+                topBump(block, i, j, DEFAULT_BLOCK_WIDTH, DEFAULT_BLOCK_DEPTH)
 
     # Creating block material
     cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
     cmds.setAttr(block.namespace + ':blockMat.color', block.colour[0], block.colour[1], block.colour[2], typ = 'double3')
 
-    # Combining all block parts into one
-    cmds.polyUnite((block.namespace + ':*'), n = block.namespace)
+    if (bumps==True):
+        # Combining all block parts into one
+        cmds.polyUnite((block.namespace + ':*'), n = block.namespace)
 
     # Deleting construction history
     cmds.delete(ch = True)
@@ -173,7 +175,7 @@ def standardBlock():
     block = setUpBlockCreation(customWidth = True, customHeight = True, customDepth = True, widthVar = 'standardWidth', heightVar = 'standardHeight', depthVar = 'standardDepth', colourVar = 'standardColour', name='standardBlock')
 
     # Creating block
-    blockBase(block)
+    blockBase(block, True)
 
     # Assigning material to block
     cmds.hyperShade(assign = (block.namespace + ':blockMat'))
@@ -185,25 +187,41 @@ def standardBlock():
     
 # Creating a tile block based on user inputed slider values
 def tileBlock():
+    #get size and colour variables from GUI:
+    blockWidth = cmds.intSliderGrp('tileWidth', q=True, v=True)
+    blockDepth = cmds.intSliderGrp('tileDepth', q=True, v=True)
+    rgb = cmds.colorSliderGrp('tileColour', q=True, rgbValue=True)
+    cubeSizeX = DEFAULT_BLOCK_WIDTH * blockWidth
+    cubeSizeZ = DEFAULT_BLOCK_DEPTH * blockDepth
+    cubeSizeY = DEFAULT_BLOCK_HEIGHT * 1
+    
+    #set up namespace:
+    nsTmp = "tileBlock" + str(rnd.randint(1000, 9999))
+    cmds.select(clear=True)
+    cmds.namespace(add=nsTmp)
+    cmds.namespace(set=nsTmp)
 
-    block = setUpBlockCreation(customWidth = True, customHeight = False, customDepth = True, widthVar = 'tileWidth', depthVar = 'tileDepth', colourVar = 'tileColour', setHeight = 1, name='tileBlock')
+    #create first cube:
+    cmds.polyCube(h=cubeSizeY, w=cubeSizeX, d=cubeSizeZ, n=nsTmp)
+    cmds.move((cubeSizeY / 2.0), moveY=True)
+    
+    cmds.polyCube(h=cubeSizeY, w=cubeSizeX, d=cubeSizeZ, n=nsTmp)
+    cmds.move((cubeSizeY / 2.0), moveY=True)
 
-    # Creating block base and moving it to sit on the grid
-    cmds.polyCube(h = block.sizeY, w = block.sizeX, d = block.sizeZ, sx = block.width, sy = (block.height - 1), sz = block.depth, n=block.namespace)
-    cmds.move((block.sizeY / 2.0), moveY = True, a = True)
+    #set up materials:
+    cmds.shadingNode('lambert', asShader=True, name="blckMat")
+    cmds.setAttr(nsTmp + ":blckMat.color", rgb[0], rgb[1], rgb[2], typ='double3')
+    
+    #combine object:
+    cmds.polyUnite((nsTmp + ":*"), n=nsTmp, ch=False)
 
-    # Creating block material
-    cmds.shadingNode('lambert', asShader = True, name = 'blockMat')
-    cmds.setAttr(block.namespace + ':blockMat.color', block.colour[0], block.colour[1], block.colour[2], typ = 'double3')
+    #assign hypershade:
+    cmds.hyperShade(assign=(nsTmp + ":blckMat"))
 
-    # Deleting construction history
-    cmds.delete(ch = True)
+    #select object:
+    cmds.select((nsTmp + ":*"), r=True)
 
-    # Assigning material to block
-    cmds.hyperShade(assign = (block.namespace + ':blockMat'))
-
-    # Removing block namespace
-    cmds.namespace(removeNamespace = ':' + block.namespace, mergeNamespaceWithParent = True)
+    cmds.namespace(removeNamespace=":" + nsTmp, mergeNamespaceWithParent=True)
 
 # -------------------------------------------------------------------------------------
     
@@ -255,7 +273,7 @@ def fourSideBlock():
     block.sizeY = (block.height * SIDED_BUMP_BLOCK_HEIGHT) + (SIDED_BUMP_BLOCK_HEIGHT / 4)
 
     # Creating base block
-    blockBase(block)
+    blockBase(block, True)
 
     # Creating side bumps
     for i in range(block.height):
@@ -382,7 +400,7 @@ def cornerBlock():
         
     
     # Creating block
-    blockBase(block)
+    blockBase(block, True)
 
     # Deleting construction history
     cmds.delete(ch = True)
